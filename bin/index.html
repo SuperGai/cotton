@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html ng-app="lifecycle.b2b" ng-controller="rootCtrl" ng-cloak>
+<head>
+    <meta charset="utf-8">
+    <meta name="keywords" content="B2B,订货,品牌运营">
+    <meta name="description" content="上海贯信B2B平台">
+    <meta name="author" content="上海贯信信息技术有限公司">
+    <title ng-bind="title"></title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/angular-material.min.css">
+    <link rel="stylesheet" href="css/ui-layout.css">
+    <link rel="stylesheet" ng-href="tpl/ordering/css/ordering.min.css">
+    <link rel="stylesheet" ng-href="tpl/{{theme}}/css/b2b-pc.min.css">
+    <script src="lib/ag-grid.min.js"></script>
+    <script src="lib/jquery.min.js"></script>
+    <script src="lib/angular.min.js"></script>
+    <script src="lib/angular-animate.min.js"></script>
+    <script src="lib/angular-aria.min.js"></script>
+    <script src="lib/angular-sanitize.min.js"></script>
+    <script src="lib/angular-messages.min.js"></script>
+    <script src="lib/angular-material.min.js"></script>
+    <script src="lib/angular-cookies.min.js"></script>
+    <script src="lib/angular-ui-router.min.js"></script>
+    <script src="lib/ui-layout.js"></script>
+    <script src="lib/angular-translate.min.js"></script>
+    <script src="lib/angular-translate-storage-cookie.min.js"></script>
+    <script src="lib/angular-translate-loader-static-files.min.js"></script>
+    <script src="lib/angular-translate-loader-partial.min.js"></script>
+    <script src="lib/angular-loading-overlay.js"></script>
+    <script src="lib/custom-loading-spin.js"></script>
+    <script src="lib/ui-bootstrap.min.js"></script>
+    <script src="lib/ui-bootstrap-tpls.min.js"></script>
+    <script src="lib/lazy-image.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/lifecycle-common.min.js"></script>
+    <script src="js/lifecycle-ordering.min.js"></script>
+    <script src="js/lifecycle-b2b-pc.min.js"></script>
+</head>
+<body layout="column">
+<md-content id="root-content" bs-loading-overlay bs-loading-overlay-reference-id="root-content">
+    <header ui-view="header"></header>
+    <nav ui-view="nav"></nav>
+    <main ui-view="main"></main>
+    <footer ui-view="footer"></footer>
+</md-content>
+</body>
+</html>

@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Created-By: Lifecycle.cn
+Implementation-Title: Lifecycel Phone Plugin
+Implementation-Vendor: Lifecycle.cn
+Implementation-Version: 1.0
+url: http://www.lifecycle.cn/phone
+Bundle-SymbolicName: com.agilecontrol.phone
+Bundle-Version: 1.0
