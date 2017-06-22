@@ -70,7 +70,7 @@ public class BroSearch extends Search {
 		JSONArray pdts=PhoneController.getInstance().getDataArrayByADSQL("bro_pdts", vc, conn, true	);
 		for(int i=0;i<pdts.length();i++){
 			JSONObject pdt= pdts.getJSONObject(i);
-			WebController.getInstance().replacePdtValues(pdt, usr.getLangId(), usr.getMarketId(), vc, jedis, conn);
+			WebController.getInstance().replacePdtValues(pdt, usr, vc, jedis, conn);
 			int rorderId=pdt.getInt("rorderid");
 			JSONObject rorderObj= rOrders.get(rorderId);
 			if(rorderObj!=null) rorderObj.put("pdt", pdt);

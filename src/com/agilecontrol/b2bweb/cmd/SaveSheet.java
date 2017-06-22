@@ -105,7 +105,8 @@ public class SaveSheet extends CmdHandler {
 		
 		//key: asi 可以下单的asi
 		HashSet<Integer> alaiableAsis= pdtAsis.get(pdtId);
-		if(alaiableAsis!=null) return alaiableAsis;		
+		if(alaiableAsis!=null) return alaiableAsis;
+		
 		alaiableAsis=new HashSet();
 		//获取可下单的asi, 需要基于当前活动, row: [asi], 与标准矩阵不同的是：不同的活动，不同的市场，商品仍然有不同
 		JSONArray alaiableAsiArray;

@@ -48,6 +48,13 @@ public class PhoneConfig {
 	 * User name case sensitive
 	 */
 	public static boolean USERNAME_CASE_SENSITIVE = ConfigValues.get("phone.username_case_sensitive", false);
+	
+	/**
+	 * Support for fair.username_case_sensitive switch
+	 * Added by zhangbh on 20170419
+	 */
+	public static boolean USERNAME_CASE_SENSITIVE_FAIR = ConfigValues.get("fair.username_case_sensitive", false);
+	
 	/**
 	 * Cookie 的timeout 时间，以秒计算，默认7天
 	 */
@@ -185,6 +192,30 @@ public class PhoneConfig {
 	//应用id
 	public static String SMS_APPID = ConfigValues.get("sms.appid", "8a48b55153eae51101540e5e69c93818"); 
 	
+	public static boolean SMS_PROXY = ConfigValues.get("sms.proxy",false); //发送短信是否使用代理  默认不使用
+	public static String SMS_PROXY_ADDRESS = ConfigValues.get("sms.proxy.address","172.16.1.4"); //代理地址
+	public static int SMS_PROXY_PORT = ConfigValues.get("sms.proxy.port",1080); //代理端口
+	
+	/**
+	 * jco连接SAP 登入参数设置
+	 */
+	public static String JCO_SAP_ADDRESS=ConfigValues.get("fair.jco_sap_address","10.90.19.16");
+	public static String JCO_SAP_SYSTEMNO=ConfigValues.get("fair.jco_sap_systemno","00");
+	public static String JCO_SAP_CLIENT=ConfigValues.get("fair.jco_sap_client","800");
+	public static String JCO_SAP_USER=ConfigValues.get("fair.jco_sap_user","wz_01");
+	public static String JCO_SAP_PASSWD=ConfigValues.get("fair.jco_sap_passwd","qw123456");
+	public static String JCO_SAP_POOLCAPACITY=ConfigValues.get("fair.jco_sap_poolcapacity","3");
+	public static String JCO_SAP_LANG=ConfigValues.get("fair.jco_sap_lang","en");
+	public static String JCO_SAP_PEAKLIMIT=ConfigValues.get("fair.jco_sap_peaklimit","10");
+	
+	/**
+	 * 数据同步映射
+	 */
+	public static String AUTO_SYNC_TAB =ConfigValues.get("auto_sync_tab", "");
+	/**
+	 * 数据同步映射,非页面版
+	 */
+	public static String AUTO_SYNC_TAB_ACTIONS =ConfigValues.get("auto_sync_tab_actions", "imp,mapping,exp");
 // 测试接口	
 //	// 商户私钥
 //	public static String PAY_PRIVATE_KEY = ConfigValues.get("phone.pay_private_key", "MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAL4ymxhVgPq9hkxLn/SleIcujJR9D+ryzw6PEpkwRFwq6Iq+UFKM52m04qF2u+ejv0K7FsJY9kStbvMaphRimOmejv9E8v2acQMHaUpiO5eaGoR/Nz66aHmXc6KlJ8nfnrdOR/hDIk9rT9pppfiNpGiIorObIL1+jo4POkaY4SnrAgMBAAECgYAqj1ZnTpLLCOfpYK7NZs2eqkro20dZkrXEkz1dLBDP8wYQLd/5aPBLlh90dAY+IkUlIIpKOO/6lDiUi60IOLvwgDlRArmQ7RIWLbltVE/8Ru0S9A4AvCwzM1h5FuWLvlPY7OOfMuAPR8jWsYy8LQPKrTIJ9iXdj0pov35y6gSFGQJBAN7US9JXZmOgSvBItNE40cjrSBu/JSauWZ5M9kDlslfmTi6GN8ThP28YsCGRlX5Y9Ivn4j1x04FsWdJBNqkPzz8CQQDagsQiqgz/6g/HHQolTG3R/7QwwjlYSehmS4Q8M6lhtQmAdNq4vxiKqJ/PQWmBbRRpt0EDwA+6ItB5zjMIoiZVAkEAqj56u3bpFF7IQnLaKyuFJEOWcRSF9tqoP8i/L/AOZRfhTaxf+Xy6sU+kadFH7SNbm3SLprRLiwtUSM5oS5x3kwJBAMircqhK9ulG8Ppw5tJeIDTM2ZQ1qig0p6LaEzSeVR2P/ovjxMIJbOZZ+XmCnvvnSunTC3gAN/E+66oQ/bkeAIkCQHAjmoyoPmQNs/JCwrtEbduPyUPSa3XUZNCmsZLWT6/BVxoI8oyPnY8ul0m/j5wlHoJocVa/6FiFhaJdkBdDgWw=");
@@ -303,6 +334,11 @@ public class PhoneConfig {
 	public static boolean SUBMIT_ORDER_AFTER_CREATE= ConfigValues.get("phone.submit_order_after_create",true);
 	
 	/**
+	 * 购物车提交持续修改未确认的订单（多啦美模式）
+	 */
+	public static boolean MODIFY_ORDER_CONTINOUSLY = ConfigValues.get("phone.modify_order_continously", false);
+	
+	/**
 	 * 价格带字段，在b_mk_pdt表上的定义将覆盖掉m_product表的定义，需要特殊化处理
 	 */
 	public final static String PRICE_RANGE_DIM="dim13";
@@ -320,4 +356,33 @@ public class PhoneConfig {
 	 * B2B的用户组，如果设置了，用户必须属于这个组才能订货
 	 */
 	public static String B2B_GROUP=ConfigValues.get("phone.b2b_group");
+	/**
+	 * 是否需要加载pprice 在pdt对象中给客户端
+	 */
+	public static boolean LOAD_PPRICE=ConfigValues.get("phone.load_pprice", false);
+	
+	/**
+	 * 七牛图片下载路径
+	 */
+	public static String DOWN_QINIU_IMG=ConfigValues.get("phone.download_qiniu_img","/opt/qiniu");
+	
+	/**
+	 * 缩略图生成命令，含有以下变量： $WIDTH$ 缩略图宽度,$DESTFILE$ 目标文件 $SRCFILE$ 原始文件
+	 * nconvert -quiet -overwrite -out jpeg -ctype rgb -q 80 -ratio -resize $WIDTH$ $WIDTH$ -o $DESTFILE$ $SRCFILE$
+	 */
+	public static String THUMBNAIL_IMAGE_CMD=ConfigValues.get("fair.thumbnail_image_cmd","nconvert");
+	
+	/**
+	 * 是否强制生成缩略图，哪怕在目标目录已存在缩略图且时间比原图新，默认为否
+	 */
+	public static boolean FORCE_THUMBNAIL= ConfigValues.get("fair.force_thumbnail", false);
+	
+	/**
+	 * b2b 创建订单调用存储过程前检验是否满足起订量， 默认不检验
+	 */
+	public static boolean ORDER_CHECK_MINTQTY=ConfigValues.get("phone.order_check_minqty",false);
+	/**
+	 * b2b 下单时，是否需要对用户进行特殊校验
+	 */
+	public static boolean SAVESHEET_SPEC_IDENTITY=ConfigValues.get("phone.savesheet_spec_identity",false);
 }

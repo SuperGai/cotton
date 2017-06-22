@@ -91,7 +91,7 @@ public class BsoGet extends ObjectGet {
 			long pdtId=row.getInt("pdtid");
 			int actId=row.optInt("actid", -1);
 			JSONObject pdt=this.fetchObject(pdtId, "pdt", pdtTable.getColumnsInListView(),null);
-			WebController.getInstance().replacePdtValues(pdt, usr.getLangId(), usr.getMarketId(), vc, jedis, conn);
+			WebController.getInstance().replacePdtValues(pdt, usr, vc, jedis, conn);
 			row.put("pdtid", pdt);
 			
 			if(actId!=-1)row.put("actid", this.fetchObject(actId, "act", actTable.getColumnsInListView(),null));

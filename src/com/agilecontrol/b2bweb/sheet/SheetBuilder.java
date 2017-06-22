@@ -39,7 +39,7 @@ import com.agilecontrol.phone.UserObj;
 public abstract class SheetBuilder {
 	protected Logger logger = LoggerFactory.getLogger(getClass());
 	
-	protected int pdtId,actId,storeId;
+	protected int pdtId,actId;
 	protected boolean readOnly;
 	protected JSONObject conf;// ad_sql#sheet_conf
 	
@@ -70,8 +70,7 @@ public abstract class SheetBuilder {
 		
 		
 		pdtId= jo.getInt( "pdtid");
-		actId=jo.optInt("actid", -1);			
-		storeId=jo.optInt("storeid",-1);	
+		actId=jo.optInt("actid", -1);
 		readOnly=jo.optBoolean("readonly",false);
 		this.conf=conf;
 		
@@ -136,9 +135,7 @@ public abstract class SheetBuilder {
 	 */
 	protected HashMap<String ,Object> loadPdtObject(int pdtId, JSONArray itemsConf) throws Exception{
 		vc.put("pdtid", pdtId);
-		if(storeId!=-1){
-			vc.put("storeid", storeId);
-		}
+		
 		ArrayList<HashMap<Integer, Object>> items=new ArrayList();		// Ã¿ÐÐ£º {asi, value}
 
 		for(int i=0;i<itemsConf.length();i++){

@@ -10,6 +10,7 @@ import org.springframework.aop.framework.HashMapCachingAdvisorChainFactory;
 
 import com.agilecontrol.b2b.schema.Column;
 import com.agilecontrol.b2b.schema.Table;
+import com.agilecontrol.b2b.schema.TableManager;
 import com.agilecontrol.b2bweb.DimDefTranslator;
 import com.agilecontrol.b2bweb.DimTranslator;
 import com.agilecontrol.b2bweb.cmd.PdtSearch.DimValue;
@@ -25,6 +26,7 @@ import com.agilecontrol.phone.CmdResult;
 import com.agilecontrol.phone.LanguageManager;
 import com.agilecontrol.phone.PhoneConfig;
 import com.agilecontrol.phone.PhoneController;
+import com.agilecontrol.phone.PhoneUtils;
 import com.agilecontrol.phone.UserObj;
 
 import redis.clients.jedis.Jedis;
@@ -79,6 +81,8 @@ public class DimList extends CmdHandler {
 	
 	private boolean isFav=false;
 	private boolean isCart=false;//是否在购物车中搜索
+	
+	private String type =null;
 
 	private int actId=-1;
 	private String blank;//'空白'的语言翻译
@@ -111,7 +115,7 @@ public class DimList extends CmdHandler {
 		 * 对应价格带属性，dim13的写法是： select distinct dim13.id, dim13.orderno from b_mk_pdt m, v_pdtdims d, m_dim dim13 where m.isactive='Y' and dim13.id=m.m_dim13_id and m.m_product_id=d.pdtid
 		 */
 		if(PhoneConfig.PRICE_RANGE_DIM.equals(dim)){
-			sb.append("select distinct dim13.id dim13_id,dim13.attribname dim13, dim13.orderno dim13_orderno from b_mk_pdt m, v_pdtdims d, m_dim dim13 ");
+			sb.append("select distinct dim13.id dim13_id,dim13.attribname dim13, dim13.orderno dim13_orderno from b_mk_pdt b_mk_pdt, v_pdtdims d, m_dim dim13 ");
 			//有搜索复杂度会上升很多
 			if(Validator.isNotNull(querystr)){
 				if(!isDefaultLang){
@@ -123,9 +127,9 @@ public class DimList extends CmdHandler {
 			}else{
 				sb.append(" where ");
 			}
-			sb.append("m.isactive='Y' and dim13.id=m.m_dim13_id and m.m_product_id=d.pdtid ");
+			sb.append("b_mk_pdt.isactive='Y' and dim13.id=b_mk_pdt.m_dim13_id and b_mk_pdt.m_product_id=d.pdtid ");
 		}else{
-			sb.append("select distinct d.").append(dim).append("_id,d.").append(dim).append(",d.").append(dim).append("_orderno from v_pdtdims d, b_mk_pdt m ");
+			sb.append("select distinct d.").append(dim).append("_id,d.").append(dim).append(",d.").append(dim).append("_orderno from v_pdtdims d, b_mk_pdt b_mk_pdt ");
 			//有搜索复杂度会上升很多
 			if(Validator.isNotNull(querystr)){
 				if(!isDefaultLang){
@@ -137,24 +141,24 @@ public class DimList extends CmdHandler {
 			}else{
 				sb.append(" where ");
 			}
-			sb.append("m.isactive='Y' and d.").append(dim).append("_id is not null and m.m_product_id=d.pdtid");
+			sb.append("b_mk_pdt.isactive='Y' and d.").append(dim).append("_id is not null and b_mk_pdt.m_product_id=d.pdtid");
 		}
 		for( DimValue dv:dimNodes){
 			if(dv.id==-2){
 				if(dv.dim.equals(PhoneConfig.PRICE_RANGE_DIM))
-					sb.append(" and m.m_").append(dv.dim).append("_id is null");
+					sb.append(" and b_mk_pdt.m_").append(dv.dim).append("_id is null");
 				else
 					sb.append(" and d.").append(dv.dim).append("_id is null");
 			}else{
 				if(dv.dim.equals(PhoneConfig.PRICE_RANGE_DIM))
-					sb.append(" and m.m_").append(dv.dim).append("_id=?");
+					sb.append(" and b_mk_pdt.m_").append(dv.dim).append("_id=?");
 				else
 					sb.append(" and d.").append(dv.dim).append("_id=?");
 				params.add(dv.id);
 			}
 		}
 		//market
-		sb.append(" and m.b_market_id=?");
+		sb.append(" and b_mk_pdt.b_market_id=?");
 		params.add(usr.getMarketId());
 		
 		// search
@@ -214,7 +218,7 @@ public class DimList extends CmdHandler {
 			
 			//
 			sb.append(")");
-		}		
+		}
 		
 		// 接下来要处理 actid,isfav
 		if(actId!=-1){
@@ -227,9 +231,44 @@ public class DimList extends CmdHandler {
 			params.add(usr.getId());
 		}
 		if(isCart){
-			sb.append(" and exists(select 1 from b_cart c where c.b_market_id=m.b_market_id and c.m_product_id=m.m_product_id and c.user_id=? and c.isactive='Y')");
+			sb.append(" and exists(select 1 from b_cart c where c.b_market_id=b_mk_pdt.b_market_id and c.m_product_id=b_mk_pdt.m_product_id and c.user_id=? and c.isactive='Y')");
 			params.add(usr.getId());
 		}
+		 
+		/**
+		 * 添加过滤条件 根据 adsql#pdtsearchConf 配置进行额外过滤
+		 * add by stao 2017/06/21
+		 */
+		
+		if(Validator.isNotNull(type)){
+			JSONObject adJson =(JSONObject)PhoneController.getInstance().getValueFromADSQLAsJSON( "pdtsearchConf", conn);
+			if (null == adJson) {
+				throw new NDSException("请检查  ad_sql#pdtsearchConf配置");
+			}
+			JSONObject typeObj = adJson.optJSONObject(type);
+			if (null == typeObj) {
+				throw new NDSException("请检查  ad_sql#pdtsearchConf " + type+ " 配置");
+			}
+			JSONArray filters = typeObj.optJSONArray("filters");
+			if (null ==filters || filters.length() == 0) {
+				throw new NDSException("请检查  ad_sql#pdtsearchConf " + type + " filters" + " 配置");
+			}
+			for (int i = 0; i < filters.length(); i++) {
+				JSONObject filter =filters.getJSONObject(i);
+				String sqlname = filter.getString("sqlname");
+				String sql = PhoneController.getInstance().getValueFromADSQL(sqlname, conn);
+				if(Validator.isNull(sql)){
+					throw new NDSException("请检查  ad_sql#pdtsearchConf " + type + " filters  sqlname" + " 配置");
+				}
+				sb.append(" and "+sql);
+				
+				String sqlparam =filter.getString("sqlparam");
+				//将 filters中配置的sql语句 和参数 添加到 map中作为过滤条件
+				params.add(vc.get(sqlparam));
+			}
+		}
+		
+		
 		//新增过滤条件，满足B2B不同模式下左边dimlist选项的需求
 		HashMap<String, Object> additionalParam = reviseSearchCondition(config);
 		
@@ -312,8 +351,17 @@ public class DimList extends CmdHandler {
 	/**
 	 * 初始化前台jo
 	 */
-	private void init(JSONObject jo) {
+	private void init(JSONObject jo)throws Exception {
 		this.config = jo;
+		
+		//stao 扩充 vc内容, 为构建条件查询做准备
+		Table usrTable=TableManager.getInstance().getTable("usr");
+		JSONObject usrObj = PhoneUtils.fetchObject(usrTable, usr.getId(), conn, jedis);
+		vc.put("1",1);
+		vc.put("lang_id", usrObj.getInt("lang_id"));
+		vc.put("uid", usr.getId());
+		vc.put("market_id",usr.getMarketId());
+		vc.put("c_store_id",usrObj.getInt("c_store_id"));
 	}
 	@Override
 	public CmdResult execute(JSONObject jo) throws Exception {
@@ -327,6 +375,7 @@ public class DimList extends CmdHandler {
 		isFav= jo.optBoolean("isfav",false);
 		isCart=jo.optBoolean("iscart",false);
 		actId= jo.optInt("actid", -1);
+		type =jo.optString("type");
 		dimNodes=initCatNodes(jo.optString("cat"),selectedDims );
 		this.querystr= jo.optString("pdtsearch");
 		

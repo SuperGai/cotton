@@ -33,7 +33,7 @@ h1. 获取商品下单矩阵
 h2. 输入
 
 获取指定商品的下单矩阵
-> {cmd:"b2b.pdt.sheet", pdtid,storeid, actid, readonly, isphone}
+> {cmd:"b2b.pdt.sheet", pdtid, actid, readonly, isphone}
 
 *pdtid* - 商品id
 *actid* - 活动id，可不提供，表示获取不参加活动的商品矩阵，注意参加活动和不参加活动的商品sku不会合并

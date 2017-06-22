@@ -225,7 +225,7 @@ public class PhoneSheetBuilder extends SheetBuilder {
 			int pdtId= pdtIds.get(i);
 			if(!redisPdts.containsKey(pdtId)){
 				JSONObject po=PhoneUtils.fetchObjectAllColumns(pdtTable, pdtId,  conn, jedis);//ÐèÒªÄÃµ½packqty£¬mask=00
-				WebController.getInstance().replacePdtValues(po, usr.getLangId(), usr.getMarketId(), vc, jedis, conn);
+				WebController.getInstance().replacePdtValues(po, usr, vc, jedis, conn);
 				redisPdts.put(pdtId, po);
 				//only columns in listview
 				retPdts.put(String.valueOf(pdtId), filterKeys(po, pdtListColumns));

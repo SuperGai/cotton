@@ -12,28 +12,29 @@ import com.agilecontrol.nea.util.NDSException;
 import com.agilecontrol.phone.CmdHandler;
 import com.agilecontrol.phone.CmdResult;
 
+/**
+ * 
+ * 根据前台在界面做修改，我们在后台做即时保存，并返回前台修改过的计算值	
+ *   
+ * @throws Exception
+ * @param pdtRow {key："123_456",,new_value:"45",cashKey:,start:,cnt:}
+ *  key:$pdtId_$asiId
+ * cashKey:前台传给后台，拿到所有商品来调整grid下面的合计量的缓存key
+ * new_value:客户修改后的值
+ * cnt:当前页有多少条
+ * start:得到当前第多少页
+ * @return JSONObject
+ * {comm:[  
+ * 				{key: ,value:}..
+ *  ],sum[123,345,1111]}
+ *  comm:普通行数据
+ *  sum:grid下面的计算总量
+ *  key:前台所对应的field
+ *  value:对应单元格的值
+ * @throws Exception
+ * @author LeeSH
+ */
 public class GridSave extends CmdHandler {
-	/**
-	 * 
-	 * 根据前台在界面做修改，我们在后台做即时保存，并返回前台修改过的计算值	
-	 *   
-	 * @throws Exception
-	 * @param pdtRow {key："123_456",,new_value:"45",cashKey:,start:,cnt:}
-	 *  key:$pdtId_$asiId
-	 * cashKey:前台传给后台，拿到所有商品来调整grid下面的合计量的缓存key
-	 * new_value:客户修改后的值
-	 * cnt:当前页有多少条
-	 * start:得到当前第多少页
-	 * @return JSONObject
-	 * {comm:[  
-	 * 				{key: ,value:}..
-	 *  ],sum[123,345,1111]}
-	 *  comm:普通行数据
-	 *  sum:grid下面的计算总量
-	 *  key:前台所对应的field
-	 *  value:对应单元格的值
-	 * @throws Exception
-	 */
 	@Override
 	public CmdResult execute(JSONObject jo) throws Exception {
 		String testQty = jo.optString("qty").trim();

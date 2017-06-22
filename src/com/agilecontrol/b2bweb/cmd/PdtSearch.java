@@ -11,6 +11,7 @@ import com.agilecontrol.b2b.cmd.Search;
 import com.agilecontrol.b2b.query.SearchResult;
 import com.agilecontrol.b2b.schema.Column;
 import com.agilecontrol.b2b.schema.Table;
+import com.agilecontrol.b2b.schema.TableManager;
 import com.agilecontrol.b2bweb.WebController;
 import com.agilecontrol.b2bweb.cmd.DimList.DimValue;
 import com.agilecontrol.nea.core.util.MessagesHolder;
@@ -53,6 +54,7 @@ public class PdtSearch extends Search {
 	private boolean isFav=false;
 	private int actId=-1;
 	private boolean isCart=false;//是否在购物车中搜索
+	private String type =null;
 	private String blank;//'空白'的语言翻译
 	class DimValue{
 		String dim; //eg: dim15
@@ -104,6 +106,15 @@ public class PdtSearch extends Search {
 	 * value 是问号对应的实际值，如果value是java.util.List，将允许多值代替？号
 	 */
 	protected HashMap<String, Object> reviseSearchCondition(JSONObject jo) throws Exception{
+		//stao 扩充 vc内容, 为构建条件查询做准备
+		Table usrTable=TableManager.getInstance().getTable("usr");
+		JSONObject usrObj = PhoneUtils.fetchObject(usrTable, usr.getId(), conn, jedis);
+		vc.put("1",1);
+		vc.put("lang_id", usrObj.getInt("lang_id"));
+		vc.put("uid", usr.getId());
+		vc.put("market_id",usr.getMarketId());
+		vc.put("c_store_id",usrObj.getInt("c_store_id"));
+		
 		HashMap<String, Object> map=new HashMap<String, Object>();
 		//market
 		map.put("b_mk_pdt.b_market_id=?", usr.getMarketId());
@@ -203,14 +214,54 @@ public class PdtSearch extends Search {
 		
 		// 接下来要处理 actid,isfav
 		if(actId!=-1){
-			map.put("exists(select 1 from b_prmt_pdt a where a.m_product_id=b_mk_pdt.m_product_id and a.b_prmt_id=? and a.isactive='Y')", actId);
+			map.put("exists(select 1 from b_prmt_pdt b_prmt_pdt where b_prmt_pdt.m_product_id=b_mk_pdt.m_product_id and b_prmt_pdt.b_prmt_id=? and b_prmt_pdt.isactive='Y')", actId);
 		}
 		
 		if(isFav){
+			
 			map.put("exists(select 1 from B_FAVOURITE f where f.m_product_id=b_mk_pdt.m_product_id and f.user_id=? and f.isactive='Y')",usr.getId());
 		}
 		if(isCart){
 			map.put("exists(select 1 from b_cart c where c.b_market_id=b_mk_pdt.b_market_id and c.m_product_id=b_mk_pdt.m_product_id and c.user_id=? and c.isactive='Y')",usr.getId());
+		}
+		
+		/**
+		 * 添加过滤条件 根据 adsql#pdtsearchConf 配置进行额外过滤
+		 * add by stao 2017/06/21
+		 */
+		if(Validator.isNotNull(type)){
+			//读取配置json
+			JSONObject adJson =(JSONObject)PhoneController.getInstance().getValueFromADSQLAsJSON( "pdtsearchConf", conn);
+			if (null == adJson) {
+				throw new NDSException("请检查  ad_sql#pdtsearchConf配置");
+			}
+			//读取json中 type对应的类型
+			JSONObject typeObj = adJson.optJSONObject(type);
+			if (null == typeObj) {
+				throw new NDSException("请检查  ad_sql#pdtsearchConf " + type+ " 配置");
+			}
+			/*
+			 * 根据type下配置的filters 过滤条件进行过滤,过滤条件为数组形式,即可配置多条过滤
+			 */
+			JSONArray filters = typeObj.optJSONArray("filters");
+			if (null ==filters || filters.length() == 0) {
+				throw new NDSException("请检查  ad_sql#pdtsearchConf " + type + " filters" + " 配置");
+			}
+			/**
+			 * 遍历过滤条件组,将每个过滤条件添加到 map 中,最终形成sql语句
+			 */
+			for (int i = 0; i < filters.length(); i++) {
+				JSONObject filter =filters.getJSONObject(i);
+				//读取 配置上 sql名称查询出该名称所对应的sql语句
+				String sqlname = filter.getString("sqlname");
+				String sql = PhoneController.getInstance().getValueFromADSQL(sqlname, conn);
+				if(Validator.isNull(sql)){
+					throw new NDSException("请检查  ad_sql#pdtsearchConf " + type + " filters  sqlname" + " 配置");
+				}
+				String sqlparam =filter.getString("sqlparam");
+				//将 filters中配置的sql语句 和参数 添加到 map中作为过滤条件
+				map.put(sql,vc.get(sqlparam));
+			}
 		}
 		return map;
 	}
@@ -236,6 +287,7 @@ public class PdtSearch extends Search {
 		actId= jo.optInt("actid", -1);
 		dimNodes=initCatNodes(jo.optString("cat"),selectedDims );
 		isCart=jo.optBoolean("iscart",false);
+		type =jo.optString("type");
 		return super.execute(jo);
 	}
 	
@@ -256,7 +308,7 @@ public class PdtSearch extends Search {
 		for(int i=0;i<data.length();i++){
 			JSONObject jo=data.getJSONObject(i);
 			//更新
-			WebController.getInstance().replacePdtValues(jo, usr.getLangId(), usr.getMarketId(), vc, jedis, conn);
+			WebController.getInstance().replacePdtValues(jo, usr, vc, jedis, conn);
 			
 		}
 		ret.put("pdt_s", data);

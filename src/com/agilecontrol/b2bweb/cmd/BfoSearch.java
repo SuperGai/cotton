@@ -62,7 +62,7 @@ public class BfoSearch extends Search {
 		JSONArray pdts=PhoneController.getInstance().getDataArrayByADSQL("bfo_pdts", vc, conn, true	);
 		for(int i=0;i<pdts.length();i++){
 			JSONObject pdt= pdts.getJSONObject(i);
-			WebController.getInstance().replacePdtValues(pdt, usr.getLangId(), usr.getMarketId(), vc, jedis, conn);
+			WebController.getInstance().replacePdtValues(pdt, usr, vc, jedis, conn);
 			int orderId=pdt.getInt("orderid");
 			JSONObject orderObj= orders.get(orderId);
 			if(orderObj!=null) orderObj.put("pdt", pdt);

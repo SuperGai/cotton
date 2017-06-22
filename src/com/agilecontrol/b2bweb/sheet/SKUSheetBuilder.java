@@ -162,7 +162,7 @@ public class SKUSheetBuilder extends SheetBuilder {
 		for(int i=0;i< pdtIds.size();i++){
 			int pdtId= pdtIds.get(i);
 			JSONObject po=PhoneUtils.fetchObjectAllColumns(pdtTable, pdtId, conn, jedis);//ÐèÒªÄÃµ½packqty£¬mask=00
-			WebController.getInstance().replacePdtValues(po, usr.getLangId(), usr.getMarketId(), vc, jedis, conn);
+			WebController.getInstance().replacePdtValues(po, usr, vc, jedis, conn);
 			redisPdts.put(pdtId, po);
 		}
 		VelocityContext colorVC = VelocityUtils.createContext();

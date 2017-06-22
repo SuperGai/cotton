@@ -144,7 +144,7 @@ public class CartCheckout extends CmdHandler {
 			int pdtId=row.getInt("pdtid");
 			int actId=row.optInt("actid", -1);
 			JSONObject pdtObj=this.fetchObject(pdtId, "pdt", table.getColumnsInListView(),null);
-			WebController.getInstance().replacePdtValues(pdtObj, usr.getLangId(), usr.getMarketId(), vc, jedis, conn);
+			WebController.getInstance().replacePdtValues(pdtObj, usr, vc, jedis, conn);
 			row.put("pdtid", pdtObj);
 			if(actId!=-1)row.put("actid", this.fetchObject(actId, "act", table.getColumnsInListView(),null));
 			if(skuLevel) row.put("colorsize", pdtSKUs.get(pdtId+"."+actId));

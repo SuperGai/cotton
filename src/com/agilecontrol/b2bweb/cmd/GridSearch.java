@@ -144,7 +144,7 @@ public class GridSearch extends PdtSearch {
 		logger.debug("marketId:"+usr.getMarketId()+"-"+usr.getId());
 		requestObj=jo;
 		builder=new GridBuilder();
-		if(Validator.isNull(jo.optString("table"))) throw new NDSException("@b2bedit-config@"+"ad_sql#grid:"+jo.optString("table")+":online_edit_kvs"+"@b2bedit-found@");
+		if(Validator.isNull(jo.optString("tablename"))) throw new NDSException("@b2bedit-config@"+"ad_sql#grid:"+jo.optString("tablename")+":online_edit_kvs"+"@b2bedit-found@");
 		//将所有传人的参数都放置在vc中供调用
 		for(Iterator it=jo.keys();it.hasNext();){
 			String key=(String)it.next();
@@ -198,7 +198,7 @@ public class GridSearch extends PdtSearch {
 		
 		JSONObject kvs=jo.optJSONObject("kvs");
 		if(kvs!=null && kvs.length()>0){
-			JSONArray kvDefs=(JSONArray) PhoneController.getInstance().getValueFromADSQLAsJSON("grid:online_edit_kvs", conn);
+			JSONArray kvDefs=(JSONArray) PhoneController.getInstance().getValueFromADSQLAsJSON("grid:" + jo.optString("tablename") + ":online_edit_kvs", conn);
 			for(Iterator it=kvs.keys();it.hasNext();){
 				String key=(String)it.next();
 				JSONObject kvDef=getKVDefine(key, kvDefs);

@@ -6,6 +6,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.agilecontrol.nea.core.util.ConfigValues;
+import com.swabunga.spell.engine.GenericTransformator;
+
 /**
 {
 	size: ['23', '24', '25','26', '27'],  - m_attibute.name
@@ -28,9 +31,19 @@ public class ProductMatrix{
 	 */
 	JSONArray asiArray;
 	
+	
+	/**
+	 * 当要求单品矩阵下单时，在线编辑启用原来不缩进那一套asi尺码组
+	 * @author LeeSh 2017-03-03
+	 */
+	JSONArray onlineEditSizeNotes;//尺码的英文描述， string 在线编辑
+	JSONArray onlineEditSizeFactors;//尺码系数，支，包，箱等 int 在线编辑
+	JSONArray onlineEditSizes; //在线编辑
+	JSONArray onlineEditAsiArray;
+
 	/**
 	 * 
-	 * @param compose {sizes, colors, pdtids, asis,sizenotes, sizefactors}
+	 * @param compose {sizes, colors, pdtids, asis,sizenotes, sizefactors,onlineditsizes,onlineditsizenotes,onlineditsizefactors,onlineEditAsis}
 	 * sizeobjs - [string] - 其中note就是m_attribute.description字段
 	 */
 	public ProductMatrix(JSONObject compose){
@@ -40,6 +53,11 @@ public class ProductMatrix{
 		colors=compose.optJSONArray("colors");
 		pdtIds=compose.optJSONArray("pdtids");
 		asiArray=compose.optJSONArray("asis");
+		onlineEditSizes = compose.optJSONArray("onlineditsizes");
+		onlineEditSizeNotes = compose.optJSONArray("onlineditsizenotes");
+		onlineEditSizeFactors = compose.optJSONArray("onlineditsizefactors");
+		onlineEditAsiArray = compose.optJSONArray("onlineditasis");
+		 
 	}
 	
 	/**
@@ -49,6 +67,16 @@ public class ProductMatrix{
 	public ArrayList<Integer> getSizeFactors(){
 		ArrayList<Integer> ss=new ArrayList();
 		for(int i=0;i<sizeFactors.length();i++) ss.add(sizeFactors.optInt(i,1));
+		return ss;
+	}
+	/**
+	 * 
+	 * @return [int] - note就是m_attribute.factor字段，放置规格系数
+	 */
+	public ArrayList<Integer> getOnlineEditSizeFactors(){
+		ArrayList<Integer> ss=new ArrayList();
+		if(onlineEditSizeFactors == null) return getSizeFactors();
+		for(int i=0;i<onlineEditSizeFactors.length();i++) ss.add(onlineEditSizeFactors.optInt(i,1));
 		return ss;
 	}
 	/**
@@ -98,6 +126,19 @@ public class ProductMatrix{
 		return asiArray;
 	}
 	/**
+	 * 
+	 * @return [][] 按行按列的asi值
+	 * elements are asi id (Integer) for that cell, null if cell has no asi,
+	 * 
+	 */
+	public JSONArray getOnlineEditAsiArray() {
+		if(ConfigValues.get("fair.sizegroup.thrink", false))
+			return onlineEditAsiArray;
+		else
+			return asiArray;
+	}
+	
+	/**
 	 * 每行对应的pdtid
 	 * @return
 	 */
@@ -115,6 +156,10 @@ public class ProductMatrix{
 		jo.put("asis", asiArray);
 		jo.put("sizenotes", sizeNotes);
 		jo.put("sizefactors", sizeFactors);
+		jo.put("onlineditsizes", onlineEditSizes);
+		jo.put("onlineditsizenotes", onlineEditSizeNotes);
+		jo.put("onlineditsizefactors", onlineEditSizeFactors);
+		jo.put("onlineditasis", onlineEditAsiArray);
 		return jo;
 	}
 }

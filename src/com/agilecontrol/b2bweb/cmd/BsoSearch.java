@@ -71,7 +71,7 @@ public class BsoSearch extends Search {
 		JSONArray pdts=PhoneController.getInstance().getDataArrayByADSQL("bso_pdts", vc, conn, true	);//获得发货单上的商品
 		for(int i=0;i<pdts.length();i++){
 			JSONObject pdt= pdts.getJSONObject(i);
-			WebController.getInstance().replacePdtValues(pdt, usr.getLangId(), usr.getMarketId(), vc, jedis, conn);
+			WebController.getInstance().replacePdtValues(pdt, usr, vc, jedis, conn);
 			int soId=pdt.getInt("orderid");
 			JSONObject orderObj= orders.get(soId);
 			if(orderObj!=null) orderObj.put("pdt", pdt);

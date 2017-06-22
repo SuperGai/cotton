@@ -152,7 +152,7 @@ ad_sql的名称，样式举例：“合计数量:<b> [[sumqty]] </b>, 合计金额:<b> [[sumamt]]<
 		for(int i=0;i<pdtColumnRows.length();i++){
 			JSONObject jo=pdtColumnRows.getJSONObject(i);
 			//更新其中的多市场定义
-			WebController.getInstance().replacePdtValues(jo, usr.getLangId(), usr.getMarketId(), vc, jedis, conn);
+			WebController.getInstance().replacePdtValues(jo, usr, vc, jedis, conn);
 		}
 		/**
 		 * 按model定义准备好的商品信息款色行信息，按view的定义来
@@ -184,7 +184,12 @@ ad_sql的名称，样式举例：“合计数量:<b> [[sumqty]] </b>, 合计金额:<b> [[sumamt]]<
 					//这里需要将上述数据pdt字段级的，和sql级的内容按model的顺序写入当前行
 					if(mc.isPdtColumn&&!mc.isColor){
 						Object value=pdtObj.get(mc.col);
-						if(mc.format!=null && value!=null) value=mc.format.format(value);
+						Column c=TableManager.getInstance().getColumn("pdt", mc.col);
+						if(c.getFkTable() != null){
+							if(mc.format!=null && value!=null) value=mc.format.format(value);
+						}else{
+							if(mc.format!=null && value!=null) value=mc.format.format(value);
+						}
 						vr.setCell(mc, value);
 					}else if(mc.isColor){
 						vr.setCell(mc, color.getName());
@@ -295,7 +300,7 @@ ad_sql的名称，样式举例：“合计数量:<b> [[sumqty]] </b>, 合计金额:<b> [[sumamt]]<
 			JSONObject pdtAndAsiIds = new JSONObject();//存放pdt_asi[]
 			ViewRow viewRow = pdtColorRows.get(i);
 			ProductMatrix matrix = viewRow.matrix;
-			JSONArray asi = matrix.getASIArrays();
+			JSONArray asi = matrix.getOnlineEditAsiArray();
 			logger.debug("asi of "+asi);
 			ArrayList<Color> color = matrix.getColors();
 			String colorCode = viewRow.getColorCode();
@@ -317,19 +322,19 @@ ad_sql的名称，样式举例：“合计数量:<b> [[sumqty]] </b>, 合计金额:<b> [[sumamt]]<
 				} else{
 					if(string.startsWith("[")){
 						if(preSizeIndex > -1)
-							jo.put(String.valueOf(j+maxSizeCount*2), viewRow.data.optJSONArray(j));
+							jo.put(String.valueOf(j+(maxSizeCount==0?1:maxSizeCount)*2), viewRow.data.optJSONArray(j));
 						else
-							jo.put(String.valueOf(j+maxSizeCount), viewRow.data.optJSONArray(j));
+							jo.put(String.valueOf(j+(maxSizeCount==0?1:maxSizeCount)), viewRow.data.optJSONArray(j));
 					}
 					else{
 						if(preSizeIndex > -1)
-							jo.put(String.valueOf(j+maxSizeCount*2), Validator.isNull(string) ?"":string);
+							jo.put(String.valueOf(j+(maxSizeCount==0?1:maxSizeCount)*2), Validator.isNull(string) ?"":string);
 						else
-							jo.put(String.valueOf(j+maxSizeCount), Validator.isNull(string) ?"":string);
+							jo.put(String.valueOf(j+(maxSizeCount==0?1:maxSizeCount)), Validator.isNull(string) ?"":string);
 					}
 				} 
 			}
-			for (int k = 0; k < maxSizeCount; k++) {
+			for (int k = 0; k < (maxSizeCount==0?1:maxSizeCount); k++) {
 				String asiId = asi.getJSONArray(colorRow).optString(k);
 				String pdt_asi = new String();
 				pdt_asi =  pdtId + "_" + asiId;
@@ -458,6 +463,7 @@ ad_sql的名称，样式举例：“合计数量:<b> [[sumqty]] </b>, 合计金额:<b> [[sumamt]]<
 		boolean asiLevel;
 		boolean isColor;
 		Format format;//可能为空
+		boolean isDim;//判断商品表里面是否存在dim属性(需要得到关联表的AK)
 		/**
 		 * 这是在构造ViewDefine的时候回写过来的位置信息，表示在ViewRow的第几列，注意不包含size/presize列的信息
 		 */
@@ -475,7 +481,7 @@ ad_sql的名称，样式举例：“合计数量:<b> [[sumqty]] </b>, 合计金额:<b> [[sumamt]]<
 		public ModelColumn(JSONObject c) throws Exception{
 			col=c.getString("col");
 			sql=c.optString("sql");
-			isPdtColumn=Validator.isNull(sql) ;
+			isPdtColumn=Validator.isNull(sql);
 			desc=c.optString("desc");
 			func=c.optString("func");
 			key=c.optString("key");
@@ -485,6 +491,7 @@ ad_sql的名称，样式举例：“合计数量:<b> [[sumqty]] </b>, 合计金额:<b> [[sumamt]]<
 			css=c.optString("css");
 			asiLevel=c.optBoolean("asilevel",false);
 			isColor=c.optBoolean("iscolor",false);
+			isDim=c.optBoolean("isdim",false);
 			
 			initFormat();  
 		}
@@ -624,7 +631,7 @@ ad_sql的名称，样式举例：“合计数量:<b> [[sumqty]] </b>, 合计金额:<b> [[sumamt]]<
 				sfc.addColumn(i);
 			}
 		}
-		String pdtIdSQL=convertToPdtIdSQL(pdtIds);//select id from m_product p where id in() or id in()
+		String pdtIdSQL=WebController.getInstance().convertToPdtIdSQL(pdtIds);//select id from m_product p where id in() or id in()
 		for(String sqlName:sqlColumns.keySet()){
 			SQLWithParams swp=PhoneController.getInstance().parseADSQL(sqlName, vc, conn);
 			String sql=StringUtils.replace( swp.getSQL(), "$PDTIDSQL$", pdtIdSQL);
@@ -634,34 +641,7 @@ ad_sql的名称，样式举例：“合计数量:<b> [[sumqty]] </b>, 合计金额:<b> [[sumamt]]<
 		}
 		return sqlColumns;
 	}
-	/**
-	 * 转换成select id from m_product p where id in() or id in()格式的语句，由于in 有1000个的限制，故需要拆分为多个in
-	 * 套在最终的sql中的形式：
-wth p as ( $PDTIDSQL$)
-select p.id pdtid, s.asi, s.qty
-from p, b_cart s where s.m_product_id=p.id and s.user_id=?
-	 * @param pdtIds
-	 * @return select id from m_product p where id in() or id in()格式
-	 * @throws Exception
-	 */
-	protected String convertToPdtIdSQL(JSONArray pdtIds) throws Exception{
-		if(pdtIds==null || pdtIds.length()==0){
-			return "select -1 id from dual";
-		}
-		StringBuilder sb=new StringBuilder("select id from m_product p where ");
-		int length=pdtIds.length();
-		
-		for(int i=0;i<length/1000+1;i++){
-			if(i>0) sb.append(" or ");
-			sb.append("p.id in(");
-			for(int j=i*1000;j< i*1000+1000 && j< length;j++){
-				sb.append(pdtIds.getInt(j)).append(",");
-			}
-			sb.deleteCharAt(sb.length()-1);
-			sb.append(")");
-		}
-		return sb.toString();
-	}
+	
 	/**
 	 * 
 	 * view定义的数据格式
@@ -1000,7 +980,7 @@ from p, b_cart s where s.m_product_id=p.id and s.user_id=?
 					pdtRows.put(String.valueOf(pdtId), prow);
 				}
 				prow.put(String.valueOf(asi), row);
-			}else{
+			}else if(!asiLevel){
 				String cc=row.optString("cc");
 				if(Validator.isNull(cc)) throw new NDSException("ad_sql#"+sqlName+"@b2bedit-define@"+"@b2bedit-must@"+" col#cc");
 				pdtRows.put(pdtId+"_"+cc, row);
@@ -1057,7 +1037,7 @@ from p, b_cart s where s.m_product_id=p.id and s.user_id=?
 		for(int i = 0;i < rowData.length();i++){
 			JSONObject data = rowData.optJSONObject(i);
 			JSONObject asi = data.optJSONObject("asi");
-			for(int k = 0;k < maxSizeCount;k++){
+			for(int k = 0;k < (maxSizeCount==0?1:maxSizeCount);k++){
 				if(view.preSizeColumnIndex > -1){
 					if(Validator.isNull(asi.optString(String.valueOf(sizeIndex+(k*2+1)))))
 						data.put(String.valueOf(sizeIndex+(k*2+1)), "");
@@ -1075,18 +1055,18 @@ from p, b_cart s where s.m_product_id=p.id and s.user_id=?
 				ModelColumn mc = model.get(k);
 				String sql = mc.sql;
 				//计算列不为空的时候，我们就可以拿到该key为sql中的数据
-				if(Validator.isNotNull(sql) && mc.asiLevel==false/*目前不支持asi级别的字段的重新计算*/){
+				if(Validator.isNotNull(sql) && mc.asiLevel==false&&!mc.isDim/*目前不支持asi级别的字段的重新计算*/){
 					if(view.preSizeColumnIndex > -1){
 						if(Validator.isNotNull(mc.fmt))
-							data.put(String.valueOf(mc.viewColumnIndex+maxSizeCount*2), new DecimalFormat(mc.fmt).format(0));
+							data.put(String.valueOf(mc.viewColumnIndex+(maxSizeCount==0?1:maxSizeCount)*2), new DecimalFormat(mc.fmt).format(0));
 						else
-							data.put(String.valueOf(mc.viewColumnIndex+maxSizeCount*2), "0");
+							data.put(String.valueOf(mc.viewColumnIndex+(maxSizeCount==0?1:maxSizeCount)*2), "0");
 					}
 					else{
 						if(Validator.isNotNull(mc.fmt))
-							data.put(String.valueOf(mc.viewColumnIndex+maxSizeCount), new DecimalFormat(mc.fmt).format(0));
+							data.put(String.valueOf(mc.viewColumnIndex+(maxSizeCount==0?1:maxSizeCount)), new DecimalFormat(mc.fmt).format(0));
 						else
-							data.put(String.valueOf(mc.viewColumnIndex+maxSizeCount), "0");
+							data.put(String.valueOf(mc.viewColumnIndex+(maxSizeCount==0?1:maxSizeCount)), "0");
 					}
 				}
 			}
@@ -1190,15 +1170,16 @@ from p, b_cart s where s.m_product_id=p.id and s.user_id=?
 			String sql = mc.sql;
 			JSONObject jo;
 			//计算列不为空的时候，我们就可以拿到该key为sql中的数据
-			if(Validator.isNotNull(sql) && mc.asiLevel==false/*目前不支持asi级别的字段的重新计算*/){
+			if(Validator.isNotNull(sql) && mc.asiLevel==false&&!mc.isDim/*目前不支持asi级别的字段的重新计算*/){
+				logger.debug("----------------------"+mc.col);
 				jo = new JSONObject();
 				if(i < sizeIndex){
 					jo.put("key",mc.viewColumnIndex+"");
 				}else{
 					if(view.preSizeColumnIndex > -1)
-						jo.put("key",(mc.viewColumnIndex+maxSizeCount*2)+"");
+						jo.put("key",(mc.viewColumnIndex+(maxSizeCount==0?1:maxSizeCount)*2)+"");
 					else
-						jo.put("key",(mc.viewColumnIndex+maxSizeCount)+"");
+						jo.put("key",(mc.viewColumnIndex+(maxSizeCount==0?1:maxSizeCount))+"");
 				}
 				jo.put("value", sqlColumns.get(mc.sql).getPdtValue(pdtId, colorCode, mc.col,mc.format));
 				comData.put(jo);
@@ -1288,9 +1269,9 @@ from p, b_cart s where s.m_product_id=p.id and s.user_id=?
 		int sizeFactor = 1;
 		ProductMatrixLoader loader = new ProductMatrixLoader(jedis, conn);
 		ProductMatrix mat = loader.getSimpleProductMatrix(pdtId);
-		JSONArray asi=mat.getASIArrays();
-		ArrayList<Integer> sizeFactors=mat.getSizeFactors();
-		for(int i=0;i<asi.length();i++){
+		JSONArray asi=mat.getOnlineEditAsiArray();
+		ArrayList<Integer> sizeFactors=mat.getOnlineEditSizeFactors();
+		for(int i=0;i < asi.length();i++){
 			//i is for color
 			JSONArray row=asi.getJSONArray(i);
 			for(int k=0;k<row.length();k++){

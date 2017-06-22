@@ -128,7 +128,7 @@ public class CatGet extends CatTree {
 				String pid = new String();
 				pid = ja.getJSONObject(j).optString("id");
 				JSONObject obj = fetchObject(Long.valueOf(pid), "pdt",false);
-				JSONObject objTrans = WebController.getInstance().replacePdtValues(obj, usr.getLangId(), usr.getMarketId(), vc, jedis, conn);
+				JSONObject objTrans = WebController.getInstance().replacePdtValues(obj, usr, vc, jedis, conn);
 				newarray.put(objTrans);
 			}
 		}else{
@@ -136,7 +136,7 @@ public class CatGet extends CatTree {
 				String pid = new String();
 				pid = ja.getJSONObject(j).optString("id");
 				JSONObject obj = fetchObject(Long.valueOf(pid), "pdt",false);
-				JSONObject objTrans = WebController.getInstance().replacePdtValues(obj, usr.getLangId(), usr.getMarketId(), vc, jedis, conn);
+				JSONObject objTrans = WebController.getInstance().replacePdtValues(obj, usr, vc, jedis, conn);
 				newarray.put(objTrans);
 			}
 		}

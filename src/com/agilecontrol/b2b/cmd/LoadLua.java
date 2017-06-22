@@ -6,7 +6,7 @@ import java.util.ArrayList;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-        
+
 import com.agilecontrol.phone.CmdResult;
 import com.agilecontrol.phone.CmdHandler;
 import com.agilecontrol.phone.PhoneController;

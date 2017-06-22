@@ -74,7 +74,7 @@ public class CartGet extends CmdHandler {
 			int actId=row.optInt("actid", -1);
 			
 			JSONObject pdtObj=this.fetchObject(pdtId, "pdt", pdtTable.getColumnsInListView(),null);
-			WebController.getInstance().replacePdtValues(pdtObj, usr.getLangId(), usr.getMarketId(), vc, jedis, conn);
+			WebController.getInstance().replacePdtValues(pdtObj, usr, vc, jedis, conn);
 			
 			row.put("pdtid", pdtObj);
 			if(actId!=-1)row.put("actid", this.fetchObject(actId, "act", actTable.getColumnsInListView(),null));

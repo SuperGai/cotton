@@ -35,6 +35,7 @@ public class OrderReceipt extends CmdHandler {
 	
 	public CmdResult execute(JSONObject jo) throws Exception {
 		int orderId= this.getInt(jo, "id");
+		jedis.del("bfo:"+orderId);
 		vc.put("bfoid", orderId);
 		vc.put("userid", usr.getId());
 		vc.put("type", "cfmr");
