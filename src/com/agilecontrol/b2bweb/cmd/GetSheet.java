@@ -25,6 +25,7 @@ import com.agilecontrol.phone.CmdResult;
 import com.agilecontrol.phone.PhoneConfig;
 import com.agilecontrol.phone.PhoneController;
 import com.agilecontrol.phone.PhoneUtils;
+import com.agilecontrol.phone.PushWangxiangitems;
 import com.agilecontrol.phone.UserObj;
 
 /**
@@ -162,13 +163,9 @@ public class GetSheet extends CmdHandler {
 		boolean isPhone=jo.optBoolean("isphone", false);
 		String classConf=isPhone?"phoneclass":"class";
 		String clazz=getString(conf,classConf);
-		
-		SheetBuilder builder=(SheetBuilder)Class.forName(clazz).newInstance();
-		
+		SheetBuilder builder=(SheetBuilder)Class.forName(clazz).newInstance();		
 		builder.init(usr, jo,conf, event, vc, jedis, conn);
-		
 		builder.build();
-		
 		JSONObject ret=builder.getSheet();
 		return new CmdResult(ret);
 	}

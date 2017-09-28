@@ -30,7 +30,6 @@ public class About extends CmdHandler {
 		
 		JSONArray session = new JSONArray();
 		session.put( "调试信息");
-		
 		HttpServletRequest request = event.getContext().getHttpServletRequest();
 		
 		//获取服务端服务器名，地址，端口，和 当前用户所在的  debug 中

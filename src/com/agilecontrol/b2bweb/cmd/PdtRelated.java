@@ -7,6 +7,7 @@ import com.agilecontrol.nea.core.control.event.NDSEventException;
 import com.agilecontrol.nea.util.NDSException;
 import com.agilecontrol.phone.CmdHandler;
 import com.agilecontrol.phone.CmdResult;
+import com.agilecontrol.phone.PhoneController;
 
 /**
  * {cmd:"b2b.pdt.related",pdtid,actid} 
@@ -49,8 +50,8 @@ public class PdtRelated extends CmdHandler {
 			throw new NDSException("pdtid not found");
 		}
 		long actid = jo.optLong("actid",-1);
-		String sql = "SELECT mp.id pdtid, mp.imageurl as mainpic,mp.value note,mp.name as no,mp.pricelist price FROM b_pdt_pairup bpp, m_product mp WHERE bpp.m_pair_id = mp.id AND bpp.m_product_id = ? ORDER BY bpp.orderno";
-		JSONArray pdtList = engine.doQueryObjectArray(sql, new Object[]{pdtid},conn);
+		String pdtsql = PhoneController.getInstance().getValueFromADSQL("b2b:pdt:related",conn);	
+		JSONArray pdtList = engine.doQueryObjectArray(pdtsql, new Object[]{pdtid},conn);
 		if(pdtList==null){
 			pdtList = new JSONArray();
 		}

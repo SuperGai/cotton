@@ -146,7 +146,7 @@ public class AdvertGet extends ObjectGet {
 	
 	public JSONArray getPostionNameByGroup(String name) throws Exception {
 	
-		JSONArray adPositions = engine.doQueryObjectArray("select ap.name from b_adpos ap,b_adgrp ag where ap.grpid = ag.id and ag.name = ?", new Object[]{name}, conn);
+		JSONArray adPositions = engine.doQueryObjectArray("select ap.name from b_adpos ap,b_adgrp ag where ap.grpid = ag.id and ap.ISACTIVE='Y' and ag.name = ?  order by ap.ORDERNO  ", new Object[]{name}, conn);
 		
 		return adPositions;
 		

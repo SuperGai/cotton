@@ -82,12 +82,13 @@ public class DimList extends CmdHandler {
 	private boolean isFav=false;
 	private boolean isCart=false;//是否在购物车中搜索
 	
-	private String type =null;
+	private JSONArray types =null;// 过滤条件组
 
 	private int actId=-1;
 	private String blank;//'空白'的语言翻译
 	private String querystr;//"pdtsearch" from web 就是模糊搜索
 	private JSONObject config;//前台传来的jo
+	
 	class DimValue{
 		String dim; //eg: dim15
 		int id; // 当前选择的值，eg: 13，即 m_dim15_id=13
@@ -120,7 +121,7 @@ public class DimList extends CmdHandler {
 			if(Validator.isNotNull(querystr)){
 				if(!isDefaultLang){
 					sb.append(", m_product_trans r, m_product p where r.m_product_id=d.pdtid and r.b_language_id=? and p.id=d.pdtid and ");
-					params.add(usr.getLangId());
+					params.add(1);
 				}else{
 					sb.append(", m_product p where p.id=d.pdtid and ");
 				}
@@ -236,35 +237,45 @@ public class DimList extends CmdHandler {
 		}
 		 
 		/**
-		 * 添加过滤条件 根据 adsql#pdtsearchConf 配置进行额外过滤
+		 * 添加过滤条件 根据 adsql#pdtsearchConf 配置进行额外过滤 
 		 * add by stao 2017/06/21
 		 */
-		
-		if(Validator.isNotNull(type)){
+		if(null !=types && types.length() !=0){
 			JSONObject adJson =(JSONObject)PhoneController.getInstance().getValueFromADSQLAsJSON( "pdtsearchConf", conn);
 			if (null == adJson) {
 				throw new NDSException("请检查  ad_sql#pdtsearchConf配置");
 			}
-			JSONObject typeObj = adJson.optJSONObject(type);
-			if (null == typeObj) {
-				throw new NDSException("请检查  ad_sql#pdtsearchConf " + type+ " 配置");
-			}
-			JSONArray filters = typeObj.optJSONArray("filters");
-			if (null ==filters || filters.length() == 0) {
-				throw new NDSException("请检查  ad_sql#pdtsearchConf " + type + " filters" + " 配置");
-			}
-			for (int i = 0; i < filters.length(); i++) {
-				JSONObject filter =filters.getJSONObject(i);
+			for (int i = 0; i < types.length(); i++) {
+				String typeStr = types.getJSONObject(i).optString("type");
+				if(Validator.isNull(typeStr)){
+					throw new NDSException("客户端 type类型为空 ");
+				}
+				JSONObject typeObj = adJson.optJSONObject(typeStr);
+				if (null == typeObj) {
+					throw new NDSException("请检查  ad_sql#pdtsearchConf " + typeStr+ " 配置");
+				}
+				JSONObject filter = typeObj.optJSONObject("filter");
+				if (null ==filter ) {
+					throw new NDSException("请检查  ad_sql#pdtsearchConf " + typeStr + " filter" + " 配置");
+				}
+				
 				String sqlname = filter.getString("sqlname");
 				String sql = PhoneController.getInstance().getValueFromADSQL(sqlname, conn);
 				if(Validator.isNull(sql)){
-					throw new NDSException("请检查  ad_sql#pdtsearchConf " + type + " filters  sqlname" + " 配置");
+					throw new NDSException("请检查  ad_sql#pdtsearchConf " + typeStr + " filter  sqlname" + " 配置");
 				}
 				sb.append(" and "+sql);
 				
-				String sqlparam =filter.getString("sqlparam");
-				//将 filters中配置的sql语句 和参数 添加到 map中作为过滤条件
-				params.add(vc.get(sqlparam));
+				//将 filter中配置的sql语句 和参数 添加到 map中作为过滤条件
+				JSONArray paramnames =filter.optJSONArray("paramnames");
+				if ( null == paramnames || paramnames.length()==0) {
+					throw new NDSException("请检查  ad_sql#pdtsearchConf " + typeStr + " filter  paramnames" + " 不能为空");
+				}
+				
+				for (int j = 0, length=paramnames.length(); j<length; j++) {
+					String name = paramnames.getString(j);
+					params.add(vc.get(name));
+				}
 			}
 		}
 		
@@ -358,10 +369,11 @@ public class DimList extends CmdHandler {
 		Table usrTable=TableManager.getInstance().getTable("usr");
 		JSONObject usrObj = PhoneUtils.fetchObject(usrTable, usr.getId(), conn, jedis);
 		vc.put("1",1);
-		vc.put("lang_id", usrObj.getInt("lang_id"));
+		vc.put("langid", 1);
 		vc.put("uid", usr.getId());
-		vc.put("market_id",usr.getMarketId());
+		vc.put("marketid",usr.getMarketId());
 		vc.put("c_store_id",usrObj.getInt("c_store_id"));
+		vc.put("storeid",usrObj.getInt("c_store_id"));
 	}
 	@Override
 	public CmdResult execute(JSONObject jo) throws Exception {
@@ -375,7 +387,8 @@ public class DimList extends CmdHandler {
 		isFav= jo.optBoolean("isfav",false);
 		isCart=jo.optBoolean("iscart",false);
 		actId= jo.optInt("actid", -1);
-		type =jo.optString("type");
+		types =jo.optJSONArray("types");
+		
 		dimNodes=initCatNodes(jo.optString("cat"),selectedDims );
 		this.querystr= jo.optString("pdtsearch");
 		

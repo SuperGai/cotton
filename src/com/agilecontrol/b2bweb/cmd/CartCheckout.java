@@ -1,8 +1,12 @@
 package com.agilecontrol.b2bweb.cmd;
 
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 
+import org.apache.velocity.VelocityContext;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -86,8 +90,10 @@ amt - 当前商品的合计金额
 @Admin(mail="yfzhu@lifecycle.cn")
 public class CartCheckout extends CmdHandler {
 	
+	
 	public CmdResult execute(JSONObject jo) throws Exception {
-		
+		boolean flag=false;
+		int storeId=jo.optInt("storeid",-1);
 		//清空所有is_order的设置
 		engine.executeUpdate("update b_cart set is_order='N' where user_id=?", new Object[]{usr.getId()}, conn);
 		JSONArray pdts=jo.optJSONArray("pdts");
@@ -157,13 +163,73 @@ public class CartCheckout extends CmdHandler {
 				totQty+=row.getInt("qty");
 			}
 		}
+
+		//校验skc
+	    vc.put("storeid", storeId);
+	    vc.put("yearmonth", gettodaytime());
+	    String tot_advise_amt="";
+	    StringBuffer error=new StringBuffer();
+        int fail=0;
+		JSONArray advitems= PhoneController.getInstance().getDataArrayByADSQL("b2b:advise:get",vc, conn, true);
+		JSONObject adviceAmt=PhoneController.getInstance().getObjectByADSQL("b2b:adviseamt:get", vc, conn);
+		if(adviceAmt!=null){
+		tot_advise_amt=adviceAmt.getString("tot_advise_amt");
+		BigDecimal tot_cart_amt=(BigDecimal) adviceAmt.get("tot_cart_amt");
+		BigDecimal zero=new BigDecimal(0.0000);
+		if(tot_cart_amt.equals(zero)){
+			flag=true;
+		}
+		}
+		if(advitems.length()!=0&&pdts!=null&&flag==false&&adviceAmt!=null){	
+			BigDecimal tot_advise_amt1=(BigDecimal) adviceAmt.get("tot_advise_amt");
+			BigDecimal a=new BigDecimal("0.05");
+			BigDecimal tot_advise_amt_up=tot_advise_amt1.add(tot_advise_amt1.multiply(a));
+			BigDecimal tot_advise_amt_down=tot_advise_amt1.subtract(tot_advise_amt1.multiply(a));
+			BigDecimal tot_cart_amt=(BigDecimal)adviceAmt.get("tot_cart_amt");
+		for (int i = 0; i < advitems.length(); i++) {
+			JSONObject row=advitems.getJSONObject(i);
+			BigDecimal b=new BigDecimal("0.00");
+			BigDecimal skc_qtyup=(BigDecimal) row.get("skc_qtyup");
+			BigDecimal skc_qtydown=(BigDecimal) row.get("skc_qtydown");
+			BigDecimal cart_skc_qty=(BigDecimal) row.get("cart_skc_qty");
+			if(compare(skc_qtydown, cart_skc_qty)==false&&compare(skc_qtyup, cart_skc_qty)==true&&compare(tot_advise_amt_down, tot_cart_amt)==false&&compare(tot_advise_amt_up, tot_cart_amt)==true){	
+					flag=true;			
+			}
+            if(compare(skc_qtyup,b)==false&&cart_skc_qty.equals(0)){
+            	flag=true;
+            }
+            if(compare(skc_qtyup, cart_skc_qty)==false){
+            	String dalei=(String) row.get("m_dim6")+row.get("m_dim18");
+        	    error.append(dalei+"：超SKC"+skc_qtyup.subtract(cart_skc_qty).doubleValue()+"个");
+            	flag=false;
+            	fail++;
+            }
+            if(compare(skc_qtydown, cart_skc_qty)==true){
+            	String dalei=(String) row.get("m_dim6")+row.get("m_dim18");
+        	    error.append(dalei+"：少SKC"+skc_qtydown.subtract(cart_skc_qty).doubleValue()+"个");
+            	fail++;
+            }
+			else{				
+				flag=false;
+				fail++;			
+			}
+		}
+		if(fail>=1){
+		throw new NDSException(error+"");
+		}
+	   }
+		
 		JSONObject obj=new JSONObject();
 		obj.put("com_id", 0);
 		obj.put("com_name", "");
 		obj.put("pdts", rows);
+		obj.put("suggest_Amt", 200);
 		obj.put("sku_level", skuLevel);
 		obj.put("totAmt", totAmt);
 		obj.put("totQty", totQty);
+		obj.put("advitems", advitems);
+		obj.put("adviceAmt", adviceAmt);
+		obj.put("tot_advise_amt", tot_advise_amt);
 		//整单折扣
 		//select xxx actid, xxx amt from xxx where $uid
 		rows= PhoneController.getInstance().getDataArrayByADSQL("cart_preorder", vc, conn, true);
@@ -209,5 +275,20 @@ public class CartCheckout extends CmdHandler {
 		}
 		
 		return pdts;
+	}
+	
+	public static String gettodaytime(){
+	     Date today=new Date();
+		 SimpleDateFormat f=new SimpleDateFormat("yyyyMM");
+		 String time=f.format(today);
+		 return time;
+	}
+	public boolean compare(BigDecimal s1,BigDecimal s2){
+		boolean flag=false;
+		int rt=s1.compareTo(s2);
+		if(rt>=0){
+			flag=true;
+	    }
+		return flag;
 	}
 }

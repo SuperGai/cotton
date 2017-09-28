@@ -1,5 +1,6 @@
 package com.agilecontrol.b2bweb.cmd;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -17,13 +18,27 @@ h1. 获取商品属性清单(针对B2B增加过滤条件，满足左边dims的显示条件)
 
 h2. 输入
 
-> {cmd:"b2b.grid.dimlist", selected, actid, isfav, cat, pdtsearch,table,id}
+> {cmd:"b2b.grid.dimlist", selected, actid, isfav, cat, pdtsearch,table,id,navparam}
 
 *selected* - jsonobj, key 是当前选中的column, value 是column对应的id, 举例: {dim3: 12, dim4:2}
 *actid* - int 活动id, 默认-1，是否基于指定的活动进行属性过滤
 *isfav* - boolean 是否面向收藏夹进行属性过滤，默认false, true的时候不读取actid
 *cat* - 当前用户选择的三层分类定义，每个cat有最多n个dimid组成，按b2b:cat:tree_conf定义构造
 *pdtsearch* 搜索条件，面向翻译表
+*navparam* navbar的点击会进入在线订单编辑，比如点击当季爆款的选项进入在线编辑,这时在线编辑查询的数据会一直带着当季爆款的选项
+			读取navparam中的参数,提取ad_sql#pdtsearchConf中对应key的sqlname,拿到sql语句,添加到搜索条件中去
+{
+    "transfer": {
+        "title": "增补款",
+        "desc": "增补款",
+        "filter": {
+                "sqlname": "pdtsearch:expressby:c_sale_replenishment",
+                "paramnames":[ "storeid"]
+            }
+    }
+}
+
+
 
 h2. 输出
 
@@ -77,9 +92,29 @@ public class GridDimList extends DimList {
 			SQLWithParams swp = PhoneController.getInstance().parseADSQL(conf, vc, conn);
 			map.put(swp.getSQL(),swp.getParams());
 		}
+		
+		String navParam = jo.optString("navparam");
+		if(Validator.isNotNull(navParam)){
+			JSONObject config = (JSONObject)PhoneController.getInstance().getValueFromADSQLAsJSON("pdtsearchConf");
+			if(config == null && config.length() == 0 && Validator.isNotNull(navParam))
+				throw new NDSException("ad_sql#pdtsearchConf not found!");
+			String ad_sqlname = config.getJSONObject(navParam).getJSONObject("filter").getString("sqlname");
+			SQLWithParams swp = PhoneController.getInstance().parseADSQL(ad_sqlname, vc, conn);
+			map.put(swp.getSQL(),toList(swp.getParams()));
+		}
+		
 		return map;
 	}
-
+	/**
+	 * to Array
+	 * @param params
+	 * @return
+	 */
+	private ArrayList toList(Object[] params) {
+		ArrayList al=new ArrayList();
+		for(Object o: params) al.add(o);
+		return al;
+	}
 	@Override
 	public CmdResult execute(JSONObject jo) throws Exception {
 		return super.execute(jo);

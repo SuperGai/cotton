@@ -238,12 +238,13 @@ public class ProductMatrixLoader {
 		 * yfzhu 20120717 像triumph内衣品牌，尺码有12个，实在太多，我们自动将没有的尺码给删除掉，不过这样做了，就不能支持基于尺码模板的配置
 		 * 
 		 */
-		boolean isThrinkSizeGroup= ConfigValues.get("fair.sizegroup.thrink", false);
+		boolean isThrinkSizeGroup= ConfigValues.get("fair.sizegroup.thrink", true);
+	
 		JSONArray sizes;
-		if(!isThrinkSizeGroup) sizes= QueryEngine.getInstance().doQueryObjectArray("select v.id, v.value, v.name,v.description note,v.factor from m_attributevalue v where v.isactive='Y' and v.m_attribute_id=? order by to_number(martixcol),v.value",
-					new Object[]{sizeAttributeId },conn);
-		else
-			sizes= QueryEngine.getInstance().doQueryObjectArray("select v.id, v.value, v.name,v.description note,v.factor from m_attributevalue v where v.isactive='Y' and v.m_attribute_id=? and exists("+
+//		if(!isThrinkSizeGroup) sizes= QueryEngine.getInstance().doQueryObjectArray("select v.id, v.value, v.description name,v.description note,v.factor from m_attributevalue v where v.isactive='Y' and v.m_attribute_id=? order by to_number(martixcol),v.value",
+//					new Object[]{sizeAttributeId },conn);
+//		else
+			sizes= QueryEngine.getInstance().doQueryObjectArray("select v.id, v.value, v.description name,v.description note,v.factor from m_attributevalue v where v.isactive='Y' and v.m_attribute_id=? and exists("+
 				"select 1 from m_product_alias a, m_attributesetinstance asi where a.isactive='Y' and a.m_product_id=? AND asi.id=a.m_attributesetinstance_id and asi.value2_code= v.value  ) order by to_number(martixcol),v.value",
 					new Object[]{sizeAttributeId,pdtId },conn);
 		

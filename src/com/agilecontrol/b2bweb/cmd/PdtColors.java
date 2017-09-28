@@ -53,7 +53,7 @@ public class PdtColors extends CmdHandler {
 		if(pdtid==-1){
 			throw new NDSException("pdtid not found£¡");
 		}
-		String sql = "SELECT mp.id pdtid, mp.imageurl image FROM m_product mp WHERE mp.stylename = (SELECT stylename FROM m_product WHERE id = ?) ORDER BY 1";
+		String sql = "SELECT mp.id pdtid, mp.imageurl as mainpic,mp.value note,mp.name as no,mp.pricelist price FROM B_PDT_ALIKE bpp, m_product mp WHERE bpp.M_PAIR_ID = mp.id AND bpp.m_product_id = ? ";
 		JSONArray pdtList = engine.doQueryObjectArray(sql, new Object[]{pdtid},conn);
 		if(pdtList==null){
 			pdtList = new JSONArray();

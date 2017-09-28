@@ -34,14 +34,14 @@ public class IntelligentpdsGet extends ObjectGet {
 	
 	@Override
 	public CmdResult execute(JSONObject jo) throws Exception {
-		int storeid = jo.getInt("id");
+		int storeid = jo.getInt("storeid");
 		if(storeid==-1){
 			throw new NDSException("storeid not found");
 		}
 		/**
 		 * 逻辑为通过userid获得他的店仓获得销补的所有商品
 		 */
-	String sql = "select   b.* from c_sale_replenishment a,m_product b,b_mk_pdt c where a.m_product_id=c.m_product_id and  a.m_product_id=b.id and a.c_store_id=?";
+	String sql = "select   b.*  from c_sale_replenishment a,m_product b  where a.m_product_id=b.id   and a.c_store_id=?";
 		JSONArray pdtList = engine.doQueryObjectArray(sql, new Object[]{storeid},conn);
 		if(pdtList==null){
 			pdtList = new JSONArray();	    

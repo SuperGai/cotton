@@ -86,6 +86,7 @@ public class ClearRedis extends CmdHandler {
 		long cnt=0;
 		if(Validator.isNotNull(key)){
 			if(key.equals("*")) throw new NDSException("不允许全清");
+			LanguageManager.getInstance().clear(conn);
 			cnt+=delKeyPattern(key);
 		}else{
 			JSONArray keys=(JSONArray) PhoneController.getInstance().getValueFromADSQLAsJSON("clear_redis_keys", conn, false);
@@ -100,9 +101,9 @@ public class ClearRedis extends CmdHandler {
 			
 			PhoneController.getInstance().clear();
 			com.agilecontrol.b2b.schema.TableManager.getInstance().reload();
-
+            
 		}
-		
+		MarketManager.getInstance().clear(conn);
 		JSONObject ret=new JSONObject();
 		String message="清除redis key合计"+ cnt+"个";
 		ret.put("message", message);//这是为shell脚本能看到提示

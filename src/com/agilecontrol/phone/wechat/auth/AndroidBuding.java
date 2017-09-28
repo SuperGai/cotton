@@ -54,8 +54,7 @@ public class AndroidBuding extends AppWeChatAuth {
 		Jedis jedis=WebUtils.getJedis();
 		try{
 			//检查服务器是否正常，主要是id_worker
-			PhoneController.getInstance().checkServerOK(event.getContext().getHttpServletRequest(), jedis, conn);
-			
+			PhoneController.getInstance().checkServerOK(event.getContext().getHttpServletRequest(), jedis, conn);			
 			AndroidBudingAuth aba=new AndroidBudingAuth(jedis, conn, event.getContext().getHttpServletRequest(), this.event.getContext().getHttpServletResponse());
 			return aba.accept(json);
 		}finally{

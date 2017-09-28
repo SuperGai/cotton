@@ -53,6 +53,7 @@ h2. 输出
 > *id* - int 当前所在市场id，b_market
 > *desc* - string 当前所在市场名称  
 > *currency* - String 市场货币符号，如￥，$
+* balance  经销商余额  
 
 
 
@@ -88,7 +89,11 @@ public class WhoAmI extends CmdHandler {
 		user.put("token", usr.getToken());
 		user.put("session", event.getContext().getSession().getId());
 		user.put("logintime", new QDate(event.getContext().getSession().getCreationTime()));
+	    
 		
+		String sql="select  fc.feeremain  from users, FA_CUSTOMER fc where users.c_customer_id=fc.c_customer_id and users.id="+usr.getId();
+		String balance=engine.doQueryString(sql, new Object[]{}, conn);
+		user.put("balance", balance);
 		
 		return new CmdResult(user);
 	}

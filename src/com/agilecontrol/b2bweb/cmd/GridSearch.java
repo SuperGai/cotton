@@ -5,6 +5,8 @@ import java.util.*;
 import org.json.*;
 
 import com.agilecontrol.b2b.schema.Column;
+import com.agilecontrol.b2b.schema.Table;
+import com.agilecontrol.b2b.schema.TableManager;
 import com.agilecontrol.b2bweb.WebController;
 import com.agilecontrol.b2bweb.grid.GridBuilder;
 import com.agilecontrol.b2bweb.grid.GridViewDefine;
@@ -32,7 +34,18 @@ h1. 面向Grid提供搜索结果内容
 *pdtsearch* 搜索条件，面向翻译表
 *kvs* 界面选择的过滤设置, jsonobj, key 为ad_sql#online_edit_kvs的key，value是界面选择的值，boolean（checkbox）或具体值(select)
 *meta* boolean 是否获取meta信息，即只有gridviewdefine, 
-
+*navparam* navbar的点击会进入在线订单编辑，比如点击当季爆款的选项进入在线编辑,这时在线编辑查询的数据会一直带着当季爆款的选项
+			读取navparam中的参数,提取ad_sql#pdtsearchConf中对应key的sqlname,拿到sql语句,添加到搜索条件中去
+{
+    "transfer": {
+        "title": "增补款",
+        "desc": "增补款",
+        "filter": {
+                "sqlname": "pdtsearch:expressby:c_sale_replenishment",
+                "paramnames":[ "storeid"]
+            }
+    }
+}
  * 
  * 
  * @author yfzhu
@@ -193,6 +206,10 @@ public class GridSearch extends PdtSearch {
 	 * value 是问号对应的实际值，如果value是java.util.List，将允许多值代替？号
 	 */
 	protected HashMap<String, Object> reviseSearchCondition(JSONObject jo) throws Exception{
+		Table usrTable=TableManager.getInstance().getTable("usr");
+		JSONObject usrObj = PhoneUtils.fetchObject(usrTable, usr.getId(), conn, jedis);
+		vc.put("marketid",usr.getMarketId());
+		vc.put("storeid",usrObj.getInt("c_store_id"));
 		HashMap<String, Object> map=super.reviseSearchCondition(jo);
 		vc.put("marketid", usr.getMarketId());
 		
@@ -225,6 +242,16 @@ public class GridSearch extends PdtSearch {
 		if(Validator.isNotNull(pdtFilterSQLName)){
 			SQLWithParams sqlParams=PhoneController.getInstance().parseADSQL(pdtFilterSQLName, vc, conn);
 			map.put(sqlParams.getSQL(), toList(sqlParams.getParams()));
+		}
+		
+		String navParam = jo.optString("navparam");
+		if(Validator.isNotNull(navParam)){
+			JSONObject config = (JSONObject)PhoneController.getInstance().getValueFromADSQLAsJSON("pdtsearchConf");
+			if(config == null && Validator.isNotNull(navParam))
+				throw new NDSException("ad_sql#pdtsearchConf not found!");
+			String ad_sqlname = config.getJSONObject(navParam).getJSONObject("filter").getString("sqlname");
+			SQLWithParams swp = PhoneController.getInstance().parseADSQL(ad_sqlname, vc, conn);
+			map.put(swp.getSQL(),toList(swp.getParams()));
 		}
 		
 		

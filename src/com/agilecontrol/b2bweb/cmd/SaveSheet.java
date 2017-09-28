@@ -122,6 +122,30 @@ public class SaveSheet extends CmdHandler {
 		
 		return alaiableAsis;
 	}
+	
+	/**
+	 * 
+	 * @param pdtId
+	 * @param asi
+	 * @param cartqty
+	 * @return 校验下单量有没有大于可配量
+	 * @throws Exception
+	 */
+	private Boolean checkQty(int pdtId,int asi,int cartqty)throws Exception{
+		Boolean flag=false;
+		vc.put("check_pdtid", pdtId);
+		vc.put("check_asi", asi);
+		JSONObject obj=PhoneController.getInstance().getObjectByADSQL("b2b:check:qty", vc, conn);
+		if(obj!=null){
+		int qty=obj.optInt("qty", -1);
+		if(cartqty>qty){			
+		}
+		else{
+			flag=true;
+		}		
+		}
+		return flag;
+	}
 	/**
 	 * 根据当前主商品返回所有redis对象对应的商品
 	 * @param mainPdtId
@@ -181,7 +205,21 @@ public class SaveSheet extends CmdHandler {
 		int actId=jo.optInt( "actid",-1);
 		//key 是"p"+$pdtid+"_"+$asi， value是界面输入的值
 		JSONObject qtys=this.getObject(jo, "qtys");
-
+		
+		vc.put("pdtid", mainPdtId);
+		JSONObject dim17= engine.doQueryObject("select dim.attribname dim17_name  from m_product ,M_DIM dim where m_product.id=? and m_product.m_dim17_id=dim.id",new Object[]{mainPdtId});
+		String dim17_name=dim17.getString("dim17_name");
+		int storeid=engine.doQueryInt("select c_store_id from users where id=?",new Object[]{usr.getId()});
+		int c_customer_id=engine.doQueryInt("select C_CUSTOMER_ID from users where id=?",new Object[]{usr.getId()});
+		vc.put("storeid", storeid);
+		vc.put("c_customer", c_customer_id);
+		vc.put("yearmonth", CartCheckout.gettodaytime());
+		if(c_customer_id==1&&dim17_name.contains("系列")){
+		JSONArray check=PhoneController.getInstance().getDataArrayByADSQL("b2b:addcart:check", vc, conn,true);
+		if(check.length()==0){
+			throw new NDSException("该商品不在门店规划类");
+		}
+		}
 		vc.put("actid", actId);
 		vc.put("uid", usr.getId());
 		vc.put("marketid", usr.getMarketId());
@@ -209,6 +247,7 @@ public class SaveSheet extends CmdHandler {
 			Pattern pattern=Pattern.compile("p(\\d+)_(\\d+)");
 			
 			for(Iterator it=qtys.keys();it.hasNext();){
+				boolean flag=false;
 				String key=(String)it.next();
 				if(!key.startsWith("p")) continue;
 				Matcher matcher=pattern.matcher(key);
@@ -216,8 +255,19 @@ public class SaveSheet extends CmdHandler {
 					logger.debug("not a valid key:"+ key);
 					continue;
 				}
+				Object qtyvaluesString=qtys.get(key);
+				int qtyvalues=0;
+				if(qtyvaluesString!=null){
+					qtyvalues=Integer.parseInt(qtyvaluesString.toString());
+				}
 				int pdtId=Tools.getInt( matcher.group(1),-1);
 				int asi=Tools.getInt( matcher.group(2),-1);
+				if(qtyvalues>=1){
+				flag=checkQty(pdtId, asi, qtyvalues);
+				if(flag==false){
+					throw new NDSException("下单量大于可配量");
+				}
+				}				
 				if(pdtId==-1 || asi==-1) {
 					logger.debug("not a valid key(pdtid or asi not found):"+ key);
 					continue;

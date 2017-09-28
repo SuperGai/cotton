@@ -31,10 +31,8 @@ import com.agilecontrol.phone.PhoneUtils;
 import com.agilecontrol.phone.UserObj;
 
 /**
- * 
  * 标准矩阵构造
  * 返回的sheet.values: key="p"+$pdtid+"_"+$asi, value=输入的qty
- * 
  * 增加 color_column - jsonarray of string, 这是指颜色列的值配置。
  * 由于有多个item，颜色列针对一个商品也可占据多行，比如item如果有3个，则颜色列首行显示货号，
  * 第二行显示名称，第三行显示颜色等。配置为：["$pdt.no", "$pdt.name", "$pdt.colros"]；
@@ -220,7 +218,6 @@ public class SKUSheetBuilder extends SheetBuilder {
 					colorVC.put("pdt",redisPdt);
 					Velocity.evaluate(colorVC, output, VelocityUtils.class.getName(), colorDef);
 					String colorValue=output.toString();
-//					logger.debug("$$$$$$$$$$$$$$$$$$$$$$adding color value: "+colorDef+"="+ colorValue+" of cell("+ row+","+col+")" );
 					sheet.addCell(Cell.createText(row, col, colorValue));
 				}
 				col++;
@@ -241,16 +238,13 @@ public class SKUSheetBuilder extends SheetBuilder {
 				for(int k=0;k<sizes.size();k++){
 					boolean hasASI= color.isAvailableSize(k);
 					if(!hasASI) {
-//						logger.debug("not found asi for current color size idx="+ k+", color="+ color.getCode()+", colorsizee="+ Tools.toString( color.sizes,",") );
 						continue;
 					}
 					int asi= pdtASIArray.optInt(k, -1);
 					if(asi==-1){
-//						logger.debug("not found asi for current color size idx="+ k+", color="+ color.getCode()+", pdtASIArray="+pdtASIArray.toString() );
 						continue;
 					}
 					if(!asis.contains(asi)) {
-//						logger.debug("found asi id="+ asi+" of pdtid="+ pdtId+" not in current marketid="+ usr.getMarketId()+", actid="+ actId+", of uid="+ usr.getId());
 						continue;
 					}
 					Object value= itemValues.get(asi); // 2种情况，非price字段，是结果值，price字段，{d,p}  d - description, 用于界面描述，p - price 价格区间3元数组或单一价格

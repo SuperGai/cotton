@@ -54,7 +54,7 @@ public class PdtSearch extends Search {
 	private boolean isFav=false;
 	private int actId=-1;
 	private boolean isCart=false;//是否在购物车中搜索
-	private String type =null;
+	private JSONArray types =null;// 过滤条件组
 	private String blank;//'空白'的语言翻译
 	class DimValue{
 		String dim; //eg: dim15
@@ -110,10 +110,10 @@ public class PdtSearch extends Search {
 		Table usrTable=TableManager.getInstance().getTable("usr");
 		JSONObject usrObj = PhoneUtils.fetchObject(usrTable, usr.getId(), conn, jedis);
 		vc.put("1",1);
-		vc.put("lang_id", usrObj.getInt("lang_id"));
+		vc.put("langid", 1);
 		vc.put("uid", usr.getId());
-		vc.put("market_id",usr.getMarketId());
-		vc.put("c_store_id",usrObj.getInt("c_store_id"));
+		vc.put("marketid",usr.getMarketId());
+		vc.put("storeid",usrObj.getInt("c_store_id"));
 		
 		HashMap<String, Object> map=new HashMap<String, Object>();
 		//market
@@ -128,10 +128,10 @@ public class PdtSearch extends Search {
 		boolean hasWhereClause=false;
 		//dims
 		if(usr.getLangId()!=LanguageManager.getInstance().getDefaultLangId()){
-			sb=new StringBuilder("exists(select 1 from m_product d, M_PRODUCT_TRANS r where r.m_product_id=d.id and r.b_language_id=? and d.isactive='Y' and d.id=b_mk_pdt.m_product_id");
+			sb=new StringBuilder("exists(select 1 from m_product_view d, M_PRODUCT_TRANS r where r.m_product_id=d.id and r.b_language_id=? and d.isactive='Y' and d.id=b_mk_pdt.m_product_id");
 			params.add(usr.getLangId());
 		}else{
-			sb=new StringBuilder("exists(select 1 from m_product d where d.isactive='Y' and d.id=b_mk_pdt.m_product_id");
+			sb=new StringBuilder("exists(select 1 from m_product_view d where d.isactive='Y' and d.id=b_mk_pdt.m_product_id");
 		}
 		for( DimValue dv:dimNodes){
 			//这里有个特殊值：－2，表示为空, 这是catree里设置的定义
@@ -150,7 +150,7 @@ public class PdtSearch extends Search {
 			}
 		}
 		// search
-		Table table=manager.getTable("pdt");
+		Table table=manager.getTable("m_product_view");
 		String querystr=jo.optString("pdtsearch");
 		// fuzzy search
 		if (Validator.isNotNull(querystr)) {
@@ -229,38 +229,49 @@ public class PdtSearch extends Search {
 		 * 添加过滤条件 根据 adsql#pdtsearchConf 配置进行额外过滤
 		 * add by stao 2017/06/21
 		 */
-		if(Validator.isNotNull(type)){
-			//读取配置json
+		if(null !=types && types.length() !=0){
 			JSONObject adJson =(JSONObject)PhoneController.getInstance().getValueFromADSQLAsJSON( "pdtsearchConf", conn);
 			if (null == adJson) {
 				throw new NDSException("请检查  ad_sql#pdtsearchConf配置");
 			}
-			//读取json中 type对应的类型
-			JSONObject typeObj = adJson.optJSONObject(type);
-			if (null == typeObj) {
-				throw new NDSException("请检查  ad_sql#pdtsearchConf " + type+ " 配置");
-			}
-			/*
-			 * 根据type下配置的filters 过滤条件进行过滤,过滤条件为数组形式,即可配置多条过滤
-			 */
-			JSONArray filters = typeObj.optJSONArray("filters");
-			if (null ==filters || filters.length() == 0) {
-				throw new NDSException("请检查  ad_sql#pdtsearchConf " + type + " filters" + " 配置");
-			}
-			/**
-			 * 遍历过滤条件组,将每个过滤条件添加到 map 中,最终形成sql语句
-			 */
-			for (int i = 0; i < filters.length(); i++) {
-				JSONObject filter =filters.getJSONObject(i);
-				//读取 配置上 sql名称查询出该名称所对应的sql语句
+			for (int i = 0; i < types.length(); i++) {
+				String typeStr = types.getJSONObject(i).optString("type");
+				if(Validator.isNull(typeStr)){
+					throw new NDSException("客户端 type类型为空 ");
+				}
+				JSONObject typeObj = adJson.optJSONObject(typeStr);
+				if (null == typeObj) {
+					throw new NDSException("请检查  ad_sql#pdtsearchConf " + typeStr+ " 配置");
+				}
+				/*
+				 * 根据type下配置的filter 过滤条件进行过滤, 一个type对应一个过滤条件
+				 */
+				JSONObject filter = typeObj.optJSONObject("filter");
+				if (null ==filter ) {
+					throw new NDSException("请检查  ad_sql#pdtsearchConf " + typeStr + " filter" + " 配置");
+				}
+				/**
+				 * 将过滤条件添加到map中
+				 * 读取 配置上 sql名称查询出该名称所对应的sql语句
+				 */
 				String sqlname = filter.getString("sqlname");
 				String sql = PhoneController.getInstance().getValueFromADSQL(sqlname, conn);
 				if(Validator.isNull(sql)){
-					throw new NDSException("请检查  ad_sql#pdtsearchConf " + type + " filters  sqlname" + " 配置");
+					throw new NDSException("请检查  ad_sql#pdtsearchConf " + typeStr + " filter  sqlname" + " 配置");
 				}
-				String sqlparam =filter.getString("sqlparam");
-				//将 filters中配置的sql语句 和参数 添加到 map中作为过滤条件
-				map.put(sql,vc.get(sqlparam));
+				JSONArray paramnames =filter.optJSONArray("paramnames");
+				if ( null == paramnames || paramnames.length()==0) {
+					throw new NDSException("请检查  ad_sql#pdtsearchConf " + typeStr + " filter  paramnames" + " 不能为空");
+				}
+				ArrayList<Object> obs = new ArrayList<Object>();
+				for (int j = 0, length=paramnames.length(); j<length; j++) {
+					String name = paramnames.getString(j);
+					Object value =vc.get(name);
+					obs.add(value);
+				}
+				
+				//将 filter中配置的sql语句 和参数 添加到 map中作为过滤条件
+				map.put(sql,obs);
 			}
 		}
 		return map;
@@ -269,7 +280,7 @@ public class PdtSearch extends Search {
 	public CmdResult execute(JSONObject jo) throws Exception {
 		String cacheKey=jo.optString("cachekey");
 		if(Validator.isNotNull(cacheKey) && jedis.exists(cacheKey) /*需求：若key timeout也要重新查*/){
-			jo.put("table","pdt");//cache key wil reload from this table's pk records
+			jo.put("table","m_product_view");//cache key wil reload from this table's pk records
 		}else{
 			jo.put("table","b_mk_pdt");//我们其实是发起了select m_product_id from b_mk_pdt where xxx 这样的语句，所以table是b_mk_pdt
 		}
@@ -287,7 +298,7 @@ public class PdtSearch extends Search {
 		actId= jo.optInt("actid", -1);
 		dimNodes=initCatNodes(jo.optString("cat"),selectedDims );
 		isCart=jo.optBoolean("iscart",false);
-		type =jo.optString("type");
+		types =jo.optJSONArray("types");
 		return super.execute(jo);
 	}
 	
@@ -301,15 +312,27 @@ public class PdtSearch extends Search {
 	 */
 	protected void postAction(JSONObject ret) throws Exception{
 		logger.debug("ret:"+ ret);
-		JSONArray ids=(JSONArray) ret.remove("b_mk_pdt_s");
-		
-		ArrayList<Column> cols=manager.getTable("pdt").getColumnsInListView();
-		JSONArray data=PhoneUtils.getRedisObjectArray("pdt", ids, cols, true, conn, jedis);
+		JSONArray ids=(JSONArray) ret.remove("b_mk_pdt_s");		
+		ArrayList<Column> cols=manager.getTable("m_product_view").getColumnsInListView();
+		JSONArray data=PhoneUtils.getRedisObjectArray("m_product_view", ids, cols, true, conn, jedis);
 		for(int i=0;i<data.length();i++){
 			JSONObject jo=data.getJSONObject(i);
 			//更新
-			WebController.getInstance().replacePdtValues(jo, usr, vc, jedis, conn);
+			int pdtid=jo.getInt("id");
+			vc.put("marketid",usr.getMarketId());
+			vc.put("pdtid", pdtid);
+			JSONObject  sale_price=PhoneController.getInstance().getObjectByADSQL("b2b:pdtlist:price", vc, conn);
+			if(sale_price!=null){
+				if(sale_price.get("description").equals("特价")){
+					jo.put("description","issale");
+				}
+				if(sale_price.get("description").equals("清货")){
+					jo.put("description","isqinghuo");
+				}
 			
+			jo.put("sale_price", sale_price.get("price"));
+			}
+			WebController.getInstance().replacePdtValues(jo, usr, vc, jedis, conn);			
 		}
 		ret.put("pdt_s", data);
 	}

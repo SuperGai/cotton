@@ -23,8 +23,8 @@ h1. 销补表移除单个
 h2. 输入
 
 
-> *pdtid* - 商品id
-> *storeid* - 店仓id，如果不填或-1，表示不参加活动的商品
+> *id* - 商品id
+
 
 h2. 输出
 
@@ -39,8 +39,8 @@ h2. 输出
 public class IntelligentpdsDeletet extends CmdHandler {	
 	public CmdResult execute(JSONObject jo) throws Exception {		
 		int storeid = jo.getInt("storeid");
-		int pdtid = jo.getInt("pdtid");		
-        engine.executeUpdate("delete from c_sale_replenishment where c_store_id=? and m_product_id=?", new Object[]{storeid, pdtid}, conn);	
+		int pdtid = jo.getInt("pdtid");
+        engine.executeUpdate("delete from c_sale_replenishment where c_store_id=? and m_product_id=?", new Object[]{storeid,pdtid}, conn);	
 		return CmdResult.SUCCESS;
 		
 	}

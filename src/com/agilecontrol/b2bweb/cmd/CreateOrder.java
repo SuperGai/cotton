@@ -1,5 +1,6 @@
 package com.agilecontrol.b2bweb.cmd;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -15,6 +16,7 @@ import com.agilecontrol.nea.util.Validator;
 import com.agilecontrol.phone.CmdHandler;
 import com.agilecontrol.phone.CmdResult;
 import com.agilecontrol.phone.PhoneConfig;
+import com.agilecontrol.phone.PhoneController;
 
 /**
 h1. 购物车生成订单
@@ -67,8 +69,9 @@ public class CreateOrder extends CartCheckout/*为了复用getCartPdtStates*/ {
 		int addrId= this.getInt(jo, "addr_id");
 		int  orderActId=jo.optInt("order_act_id",-1);
 		String remark=jo.optString("remark");
+		String kedingremark=jo.optString("kedingremark");
 		int delivery_terms_id = jo.optInt("delivery_terms_id", -1);
-		JSONArray pdts=jo.optJSONArray("pdts");
+		JSONArray pdts=jo.optJSONArray("pdts");	
 		if(pdts!=null){
 			//首先全部清除打钩的商品
 			engine.executeUpdate("update b_cart set is_order='N' where user_id=?", new Object[]{usr.getId()}, conn);
@@ -79,7 +82,7 @@ public class CreateOrder extends CartCheckout/*为了复用getCartPdtStates*/ {
 				engine.executeUpdate("update b_cart set is_order='Y' where user_id=? and nvl(b_prmt_id,-1)=? and m_product_id=?", 
 						new Object[]{usr.getId(), actId, pdtId}, conn);
 			}
-		}else {
+		}if(pdts==null) {
 			if(jo.optBoolean("allpdts", false)){
 				engine.executeUpdate("update b_cart set is_order='Y' where user_id=?", 
 						new Object[]{usr.getId()}, conn);
@@ -92,14 +95,14 @@ public class CreateOrder extends CartCheckout/*为了复用getCartPdtStates*/ {
 		//sql语句样式: select pdtid, code, message from b_cart where xxx
 		//key: pdtid, value: {c,m}
 		HashMap<Integer, JSONObject> pdtStates=getCartPdtStates();
-		if(pdtStates.size()>0) throw new NDSException("@cart-pdt-not-valid@");//购物车商品订量有误，请重新选择
-		
+		if(pdtStates.size()>0) throw new NDSException("@cart-pdt-not-valid@");//购物车商品订量有误，请重新选择		
 		ArrayList params=new ArrayList();
 		params.add(usr.getId());
 		params.add(orderActId);
 		params.add(addrId);
 		params.add(usr.getMarketId());
 		params.add(remark);
+		params.add(kedingremark);
 		if(delivery_terms_id != -1){
 			params.add(delivery_terms_id);
 		}
@@ -110,6 +113,7 @@ public class CreateOrder extends CartCheckout/*为了复用getCartPdtStates*/ {
                                            v_address_id   NUMBER,
                                            v_b_market_id  NUMBER,
                                            v_remark       VARCHAR2,
+                                           v_kedingremark VARCHAR2,
                                            v_b_bfo_id_out OUT String)
 		 */
 		ArrayList result=engine.executeStoredProcedure("b_bfo_addorder",params, conn);
@@ -154,10 +158,13 @@ public class CreateOrder extends CartCheckout/*为了复用getCartPdtStates*/ {
 				sender.send(orderId);
 			}
 		}
-		
+		  
 		JSONObject ret=new JSONObject();
 		ret.put("orderids", ids);
 		return new CmdResult(ret);
+		
+		
 	}
+	
 
 }

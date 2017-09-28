@@ -94,7 +94,8 @@ public class ClearRedis extends CmdHandler {
 				cnt+=delKeyPattern(key);
 			}
 		}
-		
+		//clear b_maeket
+		MarketManager.getInstance().clear(conn);
 		JSONObject ret=new JSONObject();
 		String message="清除redis key合计"+ cnt+"个";
 		ret.put("message", message);//这是为shell脚本能看到提示
