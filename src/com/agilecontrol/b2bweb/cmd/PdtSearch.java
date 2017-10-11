@@ -108,7 +108,7 @@ public class PdtSearch extends Search {
 	protected HashMap<String, Object> reviseSearchCondition(JSONObject jo) throws Exception{
 		//stao 扩充 vc内容, 为构建条件查询做准备
 		Table usrTable=TableManager.getInstance().getTable("usr");
-		JSONObject usrObj = PhoneUtils.fetchObject(usrTable, usr.getId(), conn, jedis);
+		JSONObject usrObj = engine.doQueryObject("select * from users where id="+usr.getId());
 		vc.put("1",1);
 		vc.put("langid", 1);
 		vc.put("uid", usr.getId());

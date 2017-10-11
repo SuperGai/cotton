@@ -165,7 +165,7 @@ public class GetSheet extends CmdHandler {
 		String clazz=getString(conf,classConf);
 		SheetBuilder builder=(SheetBuilder)Class.forName(clazz).newInstance();		
 		builder.init(usr, jo,conf, event, vc, jedis, conn);
-		builder.build();
+		builder.build(); 
 		JSONObject ret=builder.getSheet();
 		return new CmdResult(ret);
 	}

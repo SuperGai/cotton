@@ -22,6 +22,7 @@ import com.agilecontrol.nea.core.schema.TableManager;
 import com.agilecontrol.nea.core.security.Directory;
 import com.agilecontrol.nea.core.security.SecurityUtils;
 import com.agilecontrol.nea.core.security.User;
+import com.agilecontrol.nea.core.security.UserManager;
 import com.agilecontrol.nea.core.util.ConfigValues;
 import com.agilecontrol.nea.core.util.WebKeys;
 import com.agilecontrol.nea.util.NDSException;
